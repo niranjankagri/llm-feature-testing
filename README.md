@@ -30,6 +30,8 @@ outcome and citations can be checked exactly, and only the wording is left to ju
 
 ## How it is tested
 
+![Eval flow: golden set, assistant, deterministic checks, calibrated LLM judge, pass rate per tag](docs/images/eval-flow.png)
+
 ```text
 evals/cases.json (32 cases, hand-written expectations + reference answer each)
         │  every case asked 3 times (answers vary between runs)
@@ -100,6 +102,12 @@ replay reports the missing recording instead of silently reusing an old answer.
 - **Effort per role.** The assistant runs at low effort (a chat feature should be quick), the judge at medium.
 
 More in [docs/framework-design.md](docs/framework-design.md).
+
+## Interview guide
+
+[docs/interview-questions.md](docs/interview-questions.md) ([PDF](docs/interview-questions.pdf), 11 pages): 76 questions
+on testing LLM features (golden sets, deterministic checks, LLM-as-judge and its calibration, prompt injection, data
+leaks, non-determinism, CI and cost), each answered with a pointer into this repo.
 
 ## Limitations
 
