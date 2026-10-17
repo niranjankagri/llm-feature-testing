@@ -1,0 +1,12 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<!--
+  The golden-set eval against Claude: `mvnw test -Dsuite=eval`. Replays recordings without a key;
+  with ANTHROPIC_API_KEY it calls Claude and records new answers (32 cases x 3 samples + judge calls).
+-->
+<suite name="Eval">
+    <test name="LeaveDesk assistant eval">
+        <classes>
+            <class name="com.niranjankagri.llmtesting.EvalSuiteTest"/>
+        </classes>
+    </test>
+</suite>
