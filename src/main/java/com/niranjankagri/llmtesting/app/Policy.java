@@ -46,8 +46,4 @@ public final class Policy {
     public Set<String> sectionIds() {
         return titles.keySet();
     }
-
-    public String title(String sectionId) {
-        return titles.get(sectionId);
-    }
 }
