@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Testing an LLM feature: an HR policy assistant (Claude) inside a small leave app, and the test
+  harness that checks it: golden-set evals with deterministic checks, an LLM judge that is itself
+  calibrated against human labels, prompt-injection and data-leak cases, repeated runs with pass-rate
+  thresholds, and recorded answers so CI runs without an API key.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.niranjankagri</groupId>
+    <artifactId>llm-feature-testing</artifactId>
+    <version>1.0.0</version>
+    <name>Testing an LLM feature (Java, Claude, TestNG)</name>
+
+    <properties>
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Which TestNG suite `mvn test` runs: unit (no model calls, default) or eval (replays recordings) -->
+        <suite>unit</suite>
+        <!-- Arguments for the CLI: mvnw test-compile exec:exec@cli -Dcli="eval" -->
+        <cli>help</cli>
+    </properties>
+
+    <dependencies>
+        <!-- Official Anthropic Java SDK: the assistant and the judge call Claude through it -->
+        <dependency>
+            <groupId>com.anthropic</groupId>
+            <artifactId>anthropic-java</artifactId>
+            <version>2.73.0</version>
+        </dependency>
+        <!-- JSON for the app, the eval cases and the reports; same version the SDK brings in -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.19.4</version>
+        </dependency>
+        <!-- TestNG runs the unit tests and the eval suite (one test per case and tag threshold) -->
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>7.12.0</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.16.0</version>
+            </plugin>
+            <!--
+              Pinned to 3.5.6 on purpose: Surefire 3.6.0 auto-detects the JUnit Platform provider in
+              TestNG projects and then ignores testng.xml and its listeners.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.6</version>
+                <configuration>
+                    <suiteXmlFiles>
+                        <suiteXmlFile>src/test/resources/testng-${suite}.xml</suiteXmlFile>
+                    </suiteXmlFiles>
+                </configuration>
+            </plugin>
+            <!-- The CLI (llm.cmd / llm.sh): own execution id so it does not leak into other exec calls -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.6.4</version>
+                <executions>
+                    <execution>
+                        <id>cli</id>
+                        <configuration>
+                            <executable>java</executable>
+                            <commandlineArgs>-classpath %classpath com.niranjankagri.llmtesting.Cli ${cli}</commandlineArgs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
