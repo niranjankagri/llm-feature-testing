@@ -1,11 +1,15 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<!-- No model calls: the eval data audit, the checks and the harness with a scripted stub. `mvnw test` runs this. -->
+<!--
+  No model calls: the eval data audit, the checks, the harness with a scripted stub, and the whole eval on
+  the hand-written samples (it must catch exactly the planted flaws). `mvnw test` runs this.
+-->
 <suite name="Unit">
     <test name="Eval data, checks and harness">
         <classes>
             <class name="com.niranjankagri.llmtesting.CaseSetTest"/>
             <class name="com.niranjankagri.llmtesting.ChecksTest"/>
             <class name="com.niranjankagri.llmtesting.HarnessTest"/>
+            <class name="com.niranjankagri.llmtesting.SampleRunTest"/>
         </classes>
     </test>
 </suite>
