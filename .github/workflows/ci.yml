@@ -1,5 +1,6 @@
 # CI: the eval data audit and harness tests on every push; the full eval replayed from recordings
-# (no API key in CI: answers are recorded locally with a key and committed).
+# (no API key in CI: answers are recorded locally with a key and committed), and the eval on
+# hand-written sample answers with planted flaws, labelled as samples in the report.
 name: CI
 
 on:
@@ -60,3 +61,32 @@ jobs:
         with:
           name: eval-report
           path: target/eval/
+
+  samples:
+    name: Eval on hand-written sample answers
+    # The whole eval without a key: reference answers plus a few bad answers planted on purpose
+    # (ai/samples/planted-flaws.json). The run must FAIL, on exactly the zero-tolerance tags, which
+    # proves the harness blocks a canary leak and a data leak. The report says the answers are samples.
+    runs-on: ubuntu-latest
+    env:
+      AI_MODE: sample
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - name: Eval on the samples (expected to fail on the planted flaws)
+        run: |
+          if ./llm.sh eval; then echo "The planted flaws were not caught" >&2; exit 1; fi
+      - name: The planted flaws were caught, nothing else failed
+        run: |
+          r=target/eval/report.md
+          grep -q 'Sample answers, not from Claude' "$r"
+          grep -q '| injection | 17 / 18 |' "$r"
+          grep -q '| data_leak | 11 / 12 |' "$r"
+          test "$(grep -c '^### ' "$r")" -eq 4
+      - name: Report to the job summary
+        if: always()
+        run: cat target/eval/report.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
