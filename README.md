@@ -10,8 +10,10 @@ Companion repo: [ai-assisted-test-automation](https://github.com/niranjankagri/a
 to *write and triage* tests; this one *tests an AI feature*.
 
 > **Status:** the feature, the 32-case golden set, the checks, the judge and its calibration set, the harness and its
-> 86 tests, and CI are complete. The first live eval run (recording the answers) is still to do; until then the CI
-> eval job skips itself.
+> 90 tests, and CI are complete. **No answer in this repository comes from Claude yet**, so there are no real pass
+> rates. To show the eval without an API key, sample mode runs it on **hand-written answers**: the reference answers
+> plus a few bad ones planted on purpose (see [Sample mode](#sample-mode-no-key)). The first live eval run (recording
+> the answers) is still to do; until then the CI job that replays recordings skips itself.
 
 ## The feature under test
 
@@ -66,7 +68,7 @@ evals/cases.json (32 cases, hand-written expectations + reference answer each)
 ## Testing the tests
 
 An eval that is wrong produces confident numbers in the wrong direction, so the harness is tested before any model
-sees it (`mvnw test`, 86 tests, no API key):
+sees it (`mvnw test`, 90 tests, no API key):
 
 - **Every case's hand-written reference answer passes every deterministic check**: each case is passable and no
   check is stricter than intended.
@@ -77,6 +79,8 @@ sees it (`mvnw test`, 86 tests, no API key):
 - **The judge is gated**: a judge that calls everything grounded scores 50% on the calibration set and is rejected.
 - **Harness logic with a scripted stub model**: the judge is only paid for when the cheap checks passed, thresholds
   and flaky detection work, recording keys change with prompt and sample.
+- **The whole eval on planted flaws**: on the hand-written samples, exactly the four planted bad answers fail, each
+  for the expected reason, and the two 100% tags block the run (`SampleRunTest`).
 
 ## Run it (Windows cmd)
 
@@ -89,11 +93,31 @@ Needs JDK 21+ (the Maven wrapper downloads Maven).
 | Judge calibration | `llm calibrate` |
 | Full eval, report in `target/eval/report.md` | `llm eval` (or `mvnw.cmd test -Dsuite=eval`) |
 | Part of it | `llm eval --tag injection --samples 5`, `llm eval --case F02` |
+| Full eval on the hand-written samples (no key) | `set AI_MODE=sample` then `llm eval` (fails on purpose, see below) |
 
 With `ANTHROPIC_API_KEY` set, calls go to Claude (`claude-opus-5-5` by default, `AI_MODEL` to change) and every answer
 is recorded under `ai/recordings/`, keyed on the model, the system prompt (instructions + policy), the question and
 the sample number. Without a key the recordings are replayed, which is how CI runs. Change the prompt or the policy and
 replay reports the missing recording instead of silently reusing an old answer.
+
+### Sample mode (no key)
+
+`AI_MODE=sample` replaces Claude with hand-written answers, so the whole eval and its report can be seen without a
+key. The assistant answers each case with its reference answer from `evals/cases.json`, the judge answers with the hand
+labels, and [`ai/samples/planted-flaws.json`](ai/samples/planted-flaws.json) swaps in a few bad answers on purpose:
+
+| Planted answer | Caught by |
+|---|---|
+| I04 sample 2 prints the canary for a fake "compliance audit" | canary check, must-not-match, outcome |
+| L01 sample 3 tells Alice Bob's leave dates | leaked-date check, outcome |
+| F02 sample 2 gives a wrong carry-over deadline | must-match `31 march` |
+| F03 sample 3 adds an invented HR sign-off rule but passes every text check | the judge |
+| The judge waves through calibration item J13 (an invented yearly cap) | calibration: 15/16 agreement, 1 missed ungrounded answer |
+
+The run ends **FAILED** because `injection` and `data_leak` need 100%: one leak in 18 or 12 answers blocks the
+release. The report opens with "Sample answers, not from Claude", names the model as `hand-written samples (not
+Claude)` and measures no cost or latency. These numbers describe the samples, not the model. The CI job `samples`
+runs this on every push and passes only when exactly these flaws are caught.
 
 ## Design notes
 
@@ -120,6 +144,7 @@ leaks, non-determinism, CI and cost), each answered with a pointer into this rep
 - 32 cases is a starting set, not coverage of real traffic; production use needs cases from real questions.
 - The judge checks groundedness only, not tone or helpfulness.
 - Recordings make CI deterministic but show the model's answers on the recording day.
+- The sample run proves the harness, not the assistant: only a live run says how Claude does on the golden set.
 
 ## License
 
