@@ -11,6 +11,7 @@ import com.niranjankagri.llmtesting.eval.Judge;
 import com.niranjankagri.llmtesting.eval.JudgeCalibration;
 import com.niranjankagri.llmtesting.llm.ClaudeClient;
 import com.niranjankagri.llmtesting.llm.ModelClient;
+import com.niranjankagri.llmtesting.llm.SampleClient;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -33,7 +34,9 @@ public final class Cli {
     public static void main(String[] args) {
         List<String> rest = new ArrayList<>(Arrays.asList(args));
         String command = rest.isEmpty() ? "help" : rest.remove(0);
-        ClaudeClient model = ClaudeClient.fromEnvironment();
+        // AI_MODE=sample: hand-written answers (ai/samples), no API key, never mistaken for Claude's.
+        ModelClient model = "sample".equalsIgnoreCase(System.getenv().getOrDefault("AI_MODE", ""))
+                ? SampleClient.fromRepository() : ClaudeClient.fromEnvironment();
         Policy policy = Policy.load();
         int exit = switch (command) {
             case "ask" -> ask(model, policy, rest);
@@ -44,7 +47,7 @@ public final class Cli {
         System.exit(exit);
     }
 
-    private static int ask(ClaudeClient model, Policy policy, List<String> args) {
+    private static int ask(ModelClient model, Policy policy, List<String> args) {
         if (args.size() < 2) {
             System.out.println("Usage: llm ask <alice|bob|maria> <question>");
             return 2;
@@ -59,7 +62,7 @@ public final class Cli {
         return 0;
     }
 
-    private static int calibrate(ClaudeClient model, Policy policy) {
+    private static int calibrate(ModelClient model, Policy policy) {
         JudgeCalibration.Result r = JudgeCalibration.run(new Judge(model, policy), JudgeCalibration.load(JudgeCalibration.DEFAULT));
         System.out.printf("Judge agreement %.0f%% (minimum %.0f%%), missed ungrounded answers: %d%n",
                 r.agreement() * 100, r.minAgreement() * 100, r.missedUngrounded());
@@ -67,7 +70,7 @@ public final class Cli {
         return r.trusted() ? 0 : 1;
     }
 
-    private static int eval(ClaudeClient model, Policy policy, List<String> args) {
+    private static int eval(ModelClient model, Policy policy, List<String> args) {
         CaseSet set = CaseSet.load(CaseSet.DEFAULT);
         List<String> tags = new ArrayList<>();
         List<String> ids = new ArrayList<>();
@@ -80,8 +83,10 @@ public final class Cli {
             }
         }
         set = set.only(tags, ids);
-        System.out.println("Model " + model.model() + (model.isLive() ? ", live (answers are recorded)" : ", replay")
-                + ": " + set.cases().size() + " cases x " + set.samples() + " samples");
+        String mode = model instanceof SampleClient ? ", sample (hand-written answers, NOT from Claude)"
+                : model instanceof ClaudeClient c && c.isLive() ? ", live (answers are recorded)" : ", replay";
+        System.out.println("Model " + model.model() + mode + ": " + set.cases().size() + " cases x " + set.samples()
+                + " samples");
         JudgeCalibration.Result calibration = JudgeCalibration.run(new Judge(model, policy),
                 JudgeCalibration.load(JudgeCalibration.DEFAULT));
         EvalRunner.Run run = new EvalRunner(model, policy).run(set);
@@ -99,7 +104,8 @@ public final class Cli {
                   ask <alice|bob|maria> <question>       one question to the assistant
                   calibrate                              the judge against hand-labelled answers
                   eval [--samples N] [--tag T] [--case ID]  golden set + calibration; report in target/eval/report.md
-                Live with ANTHROPIC_API_KEY (answers are recorded); without it, recordings are replayed.""");
+                Live with ANTHROPIC_API_KEY (answers are recorded); without it, recordings are replayed.
+                AI_MODE=sample uses hand-written answers with planted flaws (ai/samples), not Claude.""");
         return 0;
     }
 }

@@ -23,11 +23,18 @@ public final class EvalReport {
 
     public static Path write(Run run, JudgeCalibration.Result calibration) {
         StringBuilder md = new StringBuilder("# LeaveDesk assistant: eval report\n\n");
+        boolean sample = com.niranjankagri.llmtesting.llm.SampleClient.isSampleModel(run.model());
+        if (sample) {
+            md.append("> **Sample answers, not from Claude.** Every answer below was written by a person: the"
+                    + " reference answers from evals/cases.json, plus bad answers planted on purpose"
+                    + " (ai/samples/planted-flaws.json) to show what the checks and the judge catch. The pass rates"
+                    + " describe these samples, not the model. Run with ANTHROPIC_API_KEY for real results.\n\n");
+        }
         long replayed = run.samples().stream().filter(Sample::replayed).count();
         md.append("Model `").append(run.model()).append("`, system prompt `").append(run.promptHash()).append("`, ")
                 .append(run.samples().size()).append(" answers")
-                .append(replayed == run.samples().size() ? " (replayed from recordings)" : replayed == 0 ? " (live)"
-                        : " (" + replayed + " replayed)")
+                .append(sample ? " (hand-written samples)" : replayed == run.samples().size() ? " (replayed from recordings)"
+                        : replayed == 0 ? " (live)" : " (" + replayed + " replayed)")
                 .append(". Result: **").append(run.passed() && (calibration == null || calibration.trusted())
                         ? "PASSED" : "FAILED").append("**\n\n");
 
@@ -81,8 +88,13 @@ public final class EvalReport {
         List<Long> latencies = run.samples().stream().map(Sample::latencyMs).sorted().toList();
         double cost = run.samples().stream().mapToDouble(Sample::costUsd).sum()
                 + (calibration == null ? 0 : calibration.costUsd());
-        md.append(String.format(Locale.ROOT, "## Cost and latency%n%nAssistant latency p50 %d ms, p95 %d ms; total cost"
-                        + " of the run when recorded about $%.2f.%n", percentile(latencies, 50), percentile(latencies, 95), cost));
+        if (sample) {
+            md.append("## Cost and latency\n\nNone measured: sample answers make no model calls.\n");
+        } else {
+            md.append(String.format(Locale.ROOT, "## Cost and latency%n%nAssistant latency p50 %d ms, p95 %d ms; total"
+                    + " cost of the run when recorded about $%.2f.%n", percentile(latencies, 50), percentile(latencies, 95),
+                    cost));
+        }
         try {
             Files.createDirectories(OUTPUT);
             Path file = OUTPUT.resolve("report.md");
