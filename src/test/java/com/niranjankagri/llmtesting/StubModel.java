@@ -21,6 +21,7 @@ public final class StubModel implements ModelClient {
         throw new IllegalStateException("No scripted answer for " + key(call));
     };
 
+    /** Scripts the answer to one call, addressed as purpose/label/sample. */
     public StubModel answer(String purpose, String label, int sample, Object value) {
         scripted.put(purpose + "/" + label + "/" + sample, value);
         return this;
@@ -37,6 +38,10 @@ public final class StubModel implements ModelClient {
         return calls;
     }
 
+    /**
+     * Records the call and returns its scripted answer with fixed fake costs; an unscripted call uses the
+     * fallback.
+     */
     @Override
     public <T> Reply<T> ask(Call<T> call) {
         calls.add(key(call));
@@ -49,6 +54,7 @@ public final class StubModel implements ModelClient {
         return "stub";
     }
 
+    /** "purpose/label/sample", the address of a scripted answer. */
     private static String key(Call<?> call) {
         return call.purpose() + "/" + call.label() + "/" + call.sample();
     }

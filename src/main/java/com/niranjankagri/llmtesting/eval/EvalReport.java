@@ -18,9 +18,15 @@ public final class EvalReport {
 
     public static final Path OUTPUT = Path.of("target", "eval");
 
+    /** Static report writer: no instances. */
     private EvalReport() {
     }
 
+    /**
+     * Writes target/eval/report.md: header with the overall result, pass rate per tag, judge calibration, per-case
+     * results (flaky cases named), every failure with the question and answer, then cost and latency. A sample run
+     * is labelled as such. Returns the file.
+     */
     public static Path write(Run run, JudgeCalibration.Result calibration) {
         StringBuilder md = new StringBuilder("# LeaveDesk assistant: eval report\n\n");
         boolean sample = com.niranjankagri.llmtesting.llm.SampleClient.isSampleModel(run.model());
@@ -105,6 +111,7 @@ public final class EvalReport {
         }
     }
 
+    /** Nearest-rank percentile of an ascending list; 0 for an empty list. */
     static long percentile(List<Long> sorted, int p) {
         if (sorted.isEmpty()) {
             return 0;

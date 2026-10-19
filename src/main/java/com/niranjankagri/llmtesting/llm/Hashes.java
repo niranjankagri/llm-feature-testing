@@ -8,9 +8,11 @@ import java.util.HexFormat;
 /** SHA-256 as hex, for recording keys and the prompt fingerprint in reports. */
 public final class Hashes {
 
+    /** Static helper only: no instances. */
     private Hashes() {
     }
 
+    /** SHA-256 of the UTF-8 bytes as lower-case hex. */
     public static String sha256(String text) {
         try {
             return HexFormat.of().formatHex(

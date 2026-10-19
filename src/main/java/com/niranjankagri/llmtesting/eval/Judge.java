@@ -33,12 +33,18 @@ public final class Judge {
     private final String systemPrompt;
     private final Policy policy;
 
+    /** Loads the judge's system prompt once. */
     public Judge(ModelClient model, Policy policy) {
         this.model = model;
         this.policy = policy;
         this.systemPrompt = resource("/prompts/judge-system.md");
     }
 
+    /**
+     * Asks whether every claim in the answer is supported by the policy or the asker's data. The judge sees
+     * exactly what the assistant saw (policy and the asker's context), so it cannot mark an answer wrong for not
+     * knowing more.
+     */
     public ModelClient.Reply<Verdict> judge(String user, String question, String answer, String label, int sample) {
         Employee asking = Employees.find(user).orElseThrow(() -> new IllegalArgumentException("Unknown user " + user));
         String message = "Leave policy:\n" + policy.markdown()
@@ -49,6 +55,10 @@ public final class Judge {
                 OutputConfig.Effort.MEDIUM, Verdict.class));
     }
 
+    /**
+     * Reads a prompt file from the classpath with Unix line endings, so the prompt hash does not depend on the
+     * platform.
+     */
     private static String resource(String name) {
         try (InputStream in = Judge.class.getResourceAsStream(name)) {
             if (in == null) {

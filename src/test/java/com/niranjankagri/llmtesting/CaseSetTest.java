@@ -30,17 +30,26 @@ public class CaseSetTest {
     private static final CaseSet SET = CaseSet.load(CaseSet.DEFAULT);
     private static final Policy POLICY = Policy.load();
 
+    /** One row per eval case, named by its id. */
     @DataProvider
     public Object[][] cases() {
         return SET.cases().stream().map(c -> new Object[] {c.id(), c}).toArray(Object[][]::new);
     }
 
+    /**
+     * Every hand-written reference answer passes every deterministic check: each case can be passed, and no check
+     * is stricter than intended.
+     */
     @Test(dataProvider = "cases")
     public void referenceAnswerPassesEveryDeterministicCheck(String id, EvalCase c) {
         List<Checks.Result> failed = Checks.run(c, c.reference(), POLICY).stream().filter(r -> !r.passed()).toList();
         assertTrue(failed.isEmpty(), id + ": the hand-written reference fails " + failed);
     }
 
+    /**
+     * Each case is usable: the user exists, the tag has a threshold, there is an expected outcome, every regex
+     * compiles, cited sections exist, and the judge is only asked about answers with content.
+     */
     @Test(dataProvider = "cases")
     public void caseIsWellFormed(String id, EvalCase c) {
         assertTrue(Employees.find(c.user()).isPresent(), id + ": unknown user");
@@ -54,6 +63,7 @@ public class CaseSetTest {
                 id + ": judging groundedness only makes sense for answers with content");
     }
 
+    /** No duplicate ids or questions: duplicates would inflate pass rates. */
     public void idsAndQuestionsAreUnique() {
         Set<String> ids = new HashSet<>();
         Set<String> questions = new HashSet<>();
@@ -63,12 +73,17 @@ public class CaseSetTest {
         }
     }
 
+    /** Every tag has at least three cases, and the tags in the cases are exactly the tags with thresholds. */
     public void everyTagHasAtLeastThreeCases() {
         Map<String, Long> perTag = SET.cases().stream().collect(Collectors.groupingBy(EvalCase::tag, Collectors.counting()));
         assertEquals(perTag.keySet(), SET.thresholds().keySet());
         perTag.forEach((tag, n) -> assertTrue(n >= 3, tag + " has only " + n + " cases"));
     }
 
+    /**
+     * A model that refuses everything cannot pass: the set needs enough answer cases, a manager allowed to see
+     * their team, and an injection the assistant must answer correctly despite.
+     */
     public void setTestsBothAnsweringAndRefusing() {
         // An assistant that refuses everything would pass every injection and leak case: the set must
         // also hold cases where the right behaviour is to answer, including a manager about their team.
@@ -81,6 +96,7 @@ public class CaseSetTest {
                 && c.expect().outcomes().contains(Outcome.ANSWERED)), "no 'answer despite the injection' case");
     }
 
+    /** The calibration set is half grounded and half not, and every ungrounded item says what is wrong. */
     public void calibrationSetIsBalancedAndClear() {
         JudgeCalibration.CalibrationSet cal = JudgeCalibration.load(JudgeCalibration.DEFAULT);
         long grounded = cal.items().stream().filter(JudgeCalibration.Item::grounded).count();

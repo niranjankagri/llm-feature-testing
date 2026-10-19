@@ -41,6 +41,7 @@ public final class ClaudeClient implements ModelClient {
 
     /** Claude declined, was cut off, or replay had no recording. */
     public static final class ModelException extends RuntimeException {
+        /** The message says what happened and how to fix it. */
         public ModelException(String message) {
             super(message);
         }
@@ -50,6 +51,7 @@ public final class ClaudeClient implements ModelClient {
     private final boolean live;
     private AnthropicClient client;
 
+    /** Use fromEnvironment() or replayOnly(); the SDK client is only created on the first live call. */
     private ClaudeClient(String model, boolean live) {
         this.model = model;
         this.live = live;
@@ -77,6 +79,11 @@ public final class ClaudeClient implements ModelClient {
         return live;
     }
 
+    /**
+     * Replay mode answers from the recording. Live mode sends the call with the cached system prompt, structured
+     * output into the call's record type and the refusal fallback, measures latency, checks the stop reason and
+     * records the answer.
+     */
     @Override
     public <T> Reply<T> ask(Call<T> call) {
         Path recording = recordingFile(call);
@@ -117,6 +124,9 @@ public final class ClaudeClient implements ModelClient {
         return RECORDINGS.resolve(call.purpose()).resolve(call.label() + "-s" + call.sample() + "-" + hash + ".json");
     }
 
+    /**
+     * The typed answer, or a ModelException when Claude declined or the answer was cut off: never half an answer.
+     */
     private static <T> T checkedAnswer(StructuredMessage<T> message, Call<T> call) {
         StopReason stop = message.stopReason().orElse(StopReason.END_TURN);
         if (stop.equals(StopReason.REFUSAL)) {
@@ -133,6 +143,10 @@ public final class ClaudeClient implements ModelClient {
                 .orElseThrow(() -> new ModelException("No answer for " + call.label()));
     }
 
+    /**
+     * Reads a recorded answer with the tokens, latency and cost of the original call. A missing recording means
+     * the prompt, the policy or the question changed, and the message says how to record again.
+     */
     private <T> Reply<T> replay(Call<T> call, Path recording) {
         if (!Files.exists(recording)) {
             throw new ModelException("No recording for " + call.purpose() + " " + call.label() + " sample "
@@ -149,6 +163,10 @@ public final class ClaudeClient implements ModelClient {
         }
     }
 
+    /**
+     * Writes the recording: what was asked, the model, the date, tokens, latency, cost and the answer, as indented
+     * JSON so it reads well in a diff.
+     */
     private <T> void save(Path recording, Call<T> call, Reply<T> reply) {
         ObjectNode root = JSON.createObjectNode();
         root.put("purpose", call.purpose());
@@ -180,6 +198,7 @@ public final class ClaudeClient implements ModelClient {
                 + usage.outputTokens() * 20.0) / 1_000_000;
     }
 
+    /** The SDK client, created on first use from ANTHROPIC_API_KEY, so replay mode never needs a key. */
     private synchronized AnthropicClient client() {
         if (client == null) {
             client = AnthropicOkHttpClient.fromEnv();

@@ -28,9 +28,14 @@ import java.util.List;
  */
 public final class Cli {
 
+    /** Entry point only: no instances. */
     private Cli() {
     }
 
+    /**
+     * Picks the model client (hand-written samples with AI_MODE=sample, otherwise Claude live or replayed), loads
+     * the policy and runs the command. Exit code: 0 passed, 1 failed, 2 wrong usage.
+     */
     public static void main(String[] args) {
         List<String> rest = new ArrayList<>(Arrays.asList(args));
         String command = rest.isEmpty() ? "help" : rest.remove(0);
@@ -47,6 +52,10 @@ public final class Cli {
         System.exit(exit);
     }
 
+    /**
+     * One question to the assistant as one of the demo users; prints outcome, citations, the answer, latency and
+     * tokens. The label comes from the question, so asking the same question again replays the same recording.
+     */
     private static int ask(ModelClient model, Policy policy, List<String> args) {
         if (args.size() < 2) {
             System.out.println("Usage: llm ask <alice|bob|maria> <question>");
@@ -62,6 +71,10 @@ public final class Cli {
         return 0;
     }
 
+    /**
+     * Runs the judge on the hand-labelled answers and prints how often it agrees; exit 1 when the judge is not
+     * trusted.
+     */
     private static int calibrate(ModelClient model, Policy policy) {
         JudgeCalibration.Result r = JudgeCalibration.run(new Judge(model, policy), JudgeCalibration.load(JudgeCalibration.DEFAULT));
         System.out.printf("Judge agreement %.0f%% (minimum %.0f%%), missed ungrounded answers: %d%n",
@@ -70,6 +83,11 @@ public final class Cli {
         return r.trusted() ? 0 : 1;
     }
 
+    /**
+     * The full eval: optional --samples, --tag and --case filters, judge calibration, every case, the report in
+     * target/eval/report.md and one line per tag. Exit 1 when a tag is below its threshold or the judge is not
+     * trusted.
+     */
     private static int eval(ModelClient model, Policy policy, List<String> args) {
         CaseSet set = CaseSet.load(CaseSet.DEFAULT);
         List<String> tags = new ArrayList<>();
@@ -98,6 +116,7 @@ public final class Cli {
         return run.passed() && calibration.trusted() ? 0 : 1;
     }
 
+    /** Prints the commands and how the mode (live, replay, sample) is chosen. */
     private static int help() {
         System.out.println("""
                 Commands (llm.cmd on Windows, ./llm.sh elsewhere):

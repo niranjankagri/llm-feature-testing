@@ -32,6 +32,10 @@ public final class SampleClient implements ModelClient {
 
     private final Map<String, Object> answers = new HashMap<>();
 
+    /**
+     * Maps every question the eval asks to a hand-written answer: reference answers and "grounded" for the eval
+     * cases, the hand labels for the calibration items, then the planted bad answers on top, per sample.
+     */
     public SampleClient(CaseSet cases, JudgeCalibration.CalibrationSet calibration, Path planted) {
         ObjectMapper json = new ObjectMapper();
         for (CaseSet.EvalCase c : cases.cases()) {
@@ -62,10 +66,15 @@ public final class SampleClient implements ModelClient {
         return new SampleClient(CaseSet.load(CaseSet.DEFAULT), JudgeCalibration.load(JudgeCalibration.DEFAULT), PLANTED);
     }
 
+    /** True for a run made with this client; the report and the CLI use it to label sample runs. */
     public static boolean isSampleModel(String model) {
         return MODEL.equals(model);
     }
 
+    /**
+     * The sample-specific answer if one is planted, otherwise the case's general one. No call is made, so tokens,
+     * latency and cost are 0; questions outside the golden and calibration sets have no sample.
+     */
     @Override
     public <T> Reply<T> ask(Call<T> call) {
         String base = call.purpose() + "/" + call.label();

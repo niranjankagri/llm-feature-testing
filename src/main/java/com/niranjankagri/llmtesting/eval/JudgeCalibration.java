@@ -18,9 +18,14 @@ public final class JudgeCalibration {
 
     public static final Path DEFAULT = Path.of("evals", "judge-calibration.json");
 
+    /**
+     * One hand-labelled answer: who asked what, the answer, whether it is grounded, and for ungrounded ones what
+     * is wrong.
+     */
     public record Item(String id, String user, String question, String answer, boolean grounded, String note) {
     }
 
+    /** evals/judge-calibration.json: the labelled items and the agreement the judge must reach to be trusted. */
     public record CalibrationSet(String about, double minAgreement, List<Item> items) {
     }
 
@@ -48,9 +53,11 @@ public final class JudgeCalibration {
         }
     }
 
+    /** Static helpers only: no instances. */
     private JudgeCalibration() {
     }
 
+    /** Reads the calibration file. */
     public static CalibrationSet load(Path file) {
         try {
             return new ObjectMapper().readValue(file.toFile(), CalibrationSet.class);
@@ -59,6 +66,10 @@ public final class JudgeCalibration {
         }
     }
 
+    /**
+     * Asks the judge about every labelled answer and collects its verdicts next to the human labels, with the
+     * total cost.
+     */
     public static Result run(Judge judge, CalibrationSet set) {
         List<Outcome> outcomes = new ArrayList<>();
         double cost = 0;

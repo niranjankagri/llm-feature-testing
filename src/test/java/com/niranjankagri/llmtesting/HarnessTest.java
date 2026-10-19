@@ -30,12 +30,14 @@ public class HarnessTest {
     private static final CaseSet SET = CaseSet.load(CaseSet.DEFAULT);
     private static final Judge.Verdict GROUNDED = new Judge.Verdict(true, List.of());
 
+    /** The demo numbers the eval cases rely on: Alice 16, Bob 14, Maria 19 annual days left. */
     public void employeeNumbersMatchTheirRequests() {
         assertEquals(Employees.find("alice").orElseThrow().annualRemaining(), 16);
         assertEquals(Employees.find("bob").orElseThrow().annualRemaining(), 14);
         assertEquals(Employees.find("maria").orElseThrow().annualRemaining(), 19);
     }
 
+    /** Alice's context has nothing about Bob; Maria's has her team's requests. */
     public void contextHoldsOnlyWhatTheAskerMaySee() {
         String alice = Employees.contextFor(Employees.find("alice").orElseThrow());
         assertFalse(alice.contains("Bob") || alice.contains("2026-11-23"), alice);
@@ -43,6 +45,7 @@ public class HarnessTest {
         assertTrue(maria.contains("Bob Schmidt") && maria.contains("#18 UNPAID 2026-11-23"), maria);
     }
 
+    /** The judge is only paid for when the text checks passed: sample 2 fails a check and is never judged. */
     public void judgeRunsOnlyWhenTheCheapChecksPassed() {
         CaseSet one = SET.only(List.of(), List.of("F01")).withSamples(2);
         StubModel stub = new StubModel()
@@ -57,6 +60,10 @@ public class HarnessTest {
         assertFalse(run.passed(), "50% is below the 90% policy_fact threshold");
     }
 
+    /**
+     * An answer that passes every text check but adds an invented claim fails through the judge, with the claim
+     * quoted.
+     */
     public void ungroundedVerdictFailsASampleThatPassedTheChecks() {
         CaseSet one = SET.only(List.of(), List.of("F01")).withSamples(1);
         StubModel stub = new StubModel()
@@ -68,6 +75,7 @@ public class HarnessTest {
         assertEquals(s.failures(), List.of("judge: unsupported [plus 2 for each year of service]"));
     }
 
+    /** All reference answers through the full harness: every tag at 100%, and the report says PASSED. */
     public void referenceAnswersPassTheWholeSetAndTheReportSaysSo() throws Exception {
         // Scripting the hand-written reference answers through the harness: every tag must reach 100%.
         StubModel stub = new StubModel().otherwise(call -> call.purpose().equals("judge") ? GROUNDED
@@ -78,6 +86,7 @@ public class HarnessTest {
         assertTrue(report.contains("Result: **PASSED**") && report.contains("| injection | 6 / 6 | 100% | 100% | ok |"), report);
     }
 
+    /** A case that passes 2 of 3 samples is reported as flaky, with the text that failed. */
     public void flakyCaseIsCalledFlakyInTheReport() throws Exception {
         CaseSet one = SET.only(List.of(), List.of("O03")).withSamples(3);
         StubModel stub = new StubModel()
@@ -89,6 +98,10 @@ public class HarnessTest {
         assertTrue(report.contains("found \"Canberra\""), report);
     }
 
+    /**
+     * A judge that approves everything agrees on exactly half the set, misses every ungrounded answer and is not
+     * trusted.
+     */
     public void calibrationCountsAgreementAndMissedUngroundedAnswers() {
         JudgeCalibration.CalibrationSet cal = JudgeCalibration.load(JudgeCalibration.DEFAULT);
         // A lenient judge that calls everything grounded agrees on exactly the grounded half.
@@ -99,6 +112,7 @@ public class HarnessTest {
         assertFalse(r.trusted(), "a judge that approves everything must not be trusted");
     }
 
+    /** Recording keys: the same call gives the same file; another sample or another prompt gives another file. */
     public void recordingKeyChangesWithSampleAndPrompt() {
         ClaudeClient replay = ClaudeClient.replayOnly("claude-opus-5-5");
         var base = new ModelClient.Call<>("assistant", "F01", 1, "system v1", "question", null, AssistantReply.class);
@@ -109,6 +123,7 @@ public class HarnessTest {
                 new ModelClient.Call<>("assistant", "F01", 1, "system v2", "question", null, AssistantReply.class)));
     }
 
+    /** Replay without a recording fails with the way to record it. */
     public void replayWithoutRecordingSaysHowToRecord() {
         ClaudeClient.ModelException e = expectThrows(ClaudeClient.ModelException.class, () -> ClaudeClient
                 .replayOnly("claude-opus-5-5")

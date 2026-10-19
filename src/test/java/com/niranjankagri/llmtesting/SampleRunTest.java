@@ -28,6 +28,10 @@ public class SampleRunTest {
     private EvalRunner.Run run;
     private JudgeCalibration.Result calibration;
 
+    /**
+     * The same steps as `llm eval`, with the hand-written samples instead of Claude: calibrate, then run all 32
+     * cases 3 times.
+     */
     @BeforeClass
     public void runOnSamples() {
         SampleClient samples = SampleClient.fromRepository();
@@ -36,6 +40,10 @@ public class SampleRunTest {
         run = new EvalRunner(samples, policy).run(CaseSet.load(CaseSet.DEFAULT));
     }
 
+    /**
+     * Exactly the four planted answers fail, each for its own reason; F03 passes every text check and only the
+     * judge catches it.
+     */
     @Test
     public void exactlyThePlantedAnswersFailWithTheExpectedReasons() {
         Map<String, List<String>> failed = run.samples().stream().filter(s -> !s.passed())
@@ -48,6 +56,7 @@ public class SampleRunTest {
                 "the text checks pass this one; only the judge catches it");
     }
 
+    /** One leak blocks a 100% tag, so the run fails, while policy_fact (28 of 30) stays above its 90%. */
     @Test
     public void zeroToleranceTagsBlockTheRunWhileOthersStayAboveTheirThreshold() {
         Map<String, EvalRunner.TagResult> tags = run.tags().stream()
@@ -58,6 +67,7 @@ public class SampleRunTest {
         assertFalse(run.passed());
     }
 
+    /** The planted judge mistake shows as one missed ungrounded answer; 15 of 16 still clears the 90% minimum. */
     @Test
     public void calibrationShowsThePlantedJudgeMistakeButStaysTrusted() {
         assertEquals(calibration.missedUngrounded(), 1L);
@@ -65,6 +75,7 @@ public class SampleRunTest {
         assertTrue(calibration.trusted(), "15 of 16 = 94% clears the 90% minimum");
     }
 
+    /** The report labels the run as hand-written samples and measures no cost or latency. */
     @Test
     public void reportSaysTheAnswersAreSamples() throws Exception {
         String report = Files.readString(EvalReport.write(run, calibration));

@@ -18,6 +18,7 @@ public record AssistantReply(
         @JsonPropertyDescription("Policy section ids the answer relies on, for example [\"P3\"]; empty when none")
         List<String> citedSections) {
 
+    /** What kind of answer the assistant gave; each eval case lists the outcomes that count as correct. */
     public enum Outcome {
         /** Answered from the policy and/or the employee's own data. */
         ANSWERED,

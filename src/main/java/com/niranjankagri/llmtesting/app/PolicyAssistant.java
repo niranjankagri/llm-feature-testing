@@ -21,6 +21,7 @@ public final class PolicyAssistant {
     private final ModelClient model;
     private final String systemPrompt;
 
+    /** Builds the system prompt once: the instructions (with the canary) followed by the whole policy. */
     public PolicyAssistant(ModelClient model, Policy policy) {
         this.model = model;
         this.systemPrompt = resource("/prompts/assistant-system.md") + policy.markdown();
@@ -39,6 +40,10 @@ public final class PolicyAssistant {
                 OutputConfig.Effort.LOW, AssistantReply.class));
     }
 
+    /**
+     * Reads a prompt file from the classpath with Unix line endings, so the prompt hash does not depend on the
+     * platform.
+     */
     private static String resource(String name) {
         try (InputStream in = PolicyAssistant.class.getResourceAsStream(name)) {
             if (in == null) {

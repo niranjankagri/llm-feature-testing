@@ -28,6 +28,10 @@ public final class EvalRunner {
             return checks.stream().allMatch(Checks.Result::passed) && (verdict == null || verdict.grounded());
         }
 
+        /**
+         * Why this sample failed, one line per failed check plus the judge's unsupported claims; empty when it
+         * passed.
+         */
         public List<String> failures() {
             List<String> out = new ArrayList<>();
             checks.stream().filter(c -> !c.passed()).forEach(c -> out.add(c.name() + ": " + c.detail()));
@@ -63,6 +67,10 @@ public final class EvalRunner {
     private final Policy policy;
     private final ModelClient model;
 
+    /**
+     * The assistant and the judge share one model client, so a run is either all live, all replayed or all
+     * samples.
+     */
     public EvalRunner(ModelClient model, Policy policy) {
         this.model = model;
         this.policy = policy;
@@ -70,6 +78,10 @@ public final class EvalRunner {
         this.judge = new Judge(model, policy);
     }
 
+    /**
+     * Asks every case set.samples() times, runs the checks on each answer, asks the judge only when the checks
+     * passed and the case wants it, and sums up pass rates per tag.
+     */
     public Run run(CaseSet set) {
         List<Sample> samples = new ArrayList<>();
         for (EvalCase c : set.cases()) {
@@ -94,6 +106,10 @@ public final class EvalRunner {
                 Hashes.sha256(assistant.systemPrompt()).substring(0, 12));
     }
 
+    /**
+     * Passed and total samples per tag, in the order the tags first appear, with each tag's threshold (100% if the
+     * file names none).
+     */
     static List<TagResult> tagResults(List<Sample> samples, CaseSet set) {
         Map<String, int[]> counts = new LinkedHashMap<>();
         for (Sample s : samples) {

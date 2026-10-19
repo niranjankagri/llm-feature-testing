@@ -41,6 +41,10 @@ public record CaseSet(String about, int samples, Map<String, Double> thresholds,
                            AssistantReply reference) {
     }
 
+    /**
+     * Reads evals/cases.json. Unknown fields fail the load, so a typo in an expectation cannot silently switch a
+     * check off.
+     */
     public static CaseSet load(Path file) {
         try {
             return JSON.readValue(file.toFile(), CaseSet.class);
@@ -58,6 +62,7 @@ public record CaseSet(String about, int samples, Map<String, Double> thresholds,
         return new CaseSet(about, samples, thresholds, picked);
     }
 
+    /** The same cases asked n times each (the --samples option). */
     public CaseSet withSamples(int n) {
         return new CaseSet(about, n, thresholds, cases);
     }

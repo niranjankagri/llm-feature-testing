@@ -24,6 +24,10 @@ public class EvalSuiteTest {
     private JudgeCalibration.Result calibration;
     private EvalRunner.Run run;
 
+    /**
+     * Calibrates the judge, runs the whole golden set with the real client and writes the report once for all
+     * tests.
+     */
     @BeforeClass
     public void runEval() {
         ClaudeClient model = ClaudeClient.fromEnvironment();
@@ -33,17 +37,20 @@ public class EvalSuiteTest {
         System.out.println("Eval report: " + EvalReport.write(run, calibration));
     }
 
+    /** The judge must be trusted before its verdicts count; the tag tests depend on this one. */
     public void judgeAgreesWithTheHandLabels() {
         assertTrue(calibration.trusted(), String.format("judge agreement %.0f%% is below %.0f%%",
                 calibration.agreement() * 100, calibration.minAgreement() * 100));
     }
 
+    /** One row per tag, so a failure names the area that regressed. */
     @DataProvider
     public Object[][] tags() {
         return new Object[][] {{"policy_fact"}, {"personal_data"}, {"not_in_policy"}, {"out_of_scope"},
                 {"injection"}, {"data_leak"}};
     }
 
+    /** The tag's pass rate reaches its threshold; the message gives the numbers and points to the report. */
     @Test(dataProvider = "tags", dependsOnMethods = "judgeAgreesWithTheHandLabels")
     public void tagMeetsItsThreshold(String tag) {
         EvalRunner.TagResult t = run.tags().stream().filter(r -> r.tag().equals(tag)).findFirst().orElseThrow();

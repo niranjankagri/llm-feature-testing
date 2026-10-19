@@ -13,11 +13,17 @@ import java.util.Optional;
  */
 public final class Employees {
 
+    /** Employees see only their own data; a manager also sees the requests of their team. */
     public enum Role { EMPLOYEE, MANAGER }
 
+    /** One leave request: type ANNUAL, SICK or UNPAID, ISO dates, working days and status PENDING or APPROVED. */
     public record Request(int id, String type, String from, String to, int days, String status) {
     }
 
+    /**
+     * A demo employee: login name, display name, role, the username of their manager, the 2026 annual allowance
+     * and their requests.
+     */
     public record Employee(String username, String name, Role role, String manager, int allowance,
                            List<Request> requests) {
 
@@ -31,6 +37,10 @@ public final class Employees {
         }
     }
 
+    /**
+     * The three demo users. The numbers are chosen so eval cases can state exact answers: Alice has 16 annual days
+     * left, Bob 14, Maria 19; Alice and Bob report to Maria.
+     */
     private static final Map<String, Employee> ALL = Map.of(
             "alice", new Employee("alice", "Alice Meyer", Role.EMPLOYEE, "maria", 24, List.of(
                     new Request(11, "ANNUAL", "2026-08-10", "2026-08-14", 5, "APPROVED"),
@@ -42,9 +52,11 @@ public final class Employees {
             "maria", new Employee("maria", "Maria Keller", Role.MANAGER, "jonas", 24, List.of(
                     new Request(15, "ANNUAL", "2026-10-26", "2026-10-30", 5, "APPROVED"))));
 
+    /** Static data only: no instances. */
     private Employees() {
     }
 
+    /** The employee with this login name, or empty for an unknown name. */
     public static Optional<Employee> find(String username) {
         return Optional.ofNullable(ALL.get(username));
     }
@@ -71,6 +83,10 @@ public final class Employees {
         return text.toString();
     }
 
+    /**
+     * One line per request (id, type, dates, working days, status), in the format the assistant and the judge
+     * read.
+     */
     private static void appendRequests(StringBuilder text, List<Request> requests) {
         for (Request r : requests) {
             text.append("  #").append(r.id()).append(" ").append(r.type()).append(" ").append(r.from()).append(" to ")

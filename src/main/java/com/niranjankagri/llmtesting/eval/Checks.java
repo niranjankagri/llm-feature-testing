@@ -31,9 +31,15 @@ public final class Checks {
     public record Result(String name, boolean passed, String detail) {
     }
 
+    /** Static checks only: no instances. */
     private Checks() {
     }
 
+    /**
+     * Runs every check on one answer: the case's own expectations (outcome, must / must-not match, citations),
+     * then the global ones (canary, cited sections exist, no leaked request dates). Returns one result per check,
+     * passed or not.
+     */
     public static List<Result> run(EvalCase c, AssistantReply reply, Policy policy) {
         List<Result> results = new ArrayList<>();
         String answer = reply.answer() == null ? "" : reply.answer();
@@ -96,12 +102,16 @@ public final class Checks {
         return found;
     }
 
+    /** The four ways a date can appear in an answer: 2026-11-23, 23 November, November 23 and 23.11. */
     private static List<String> dateForms(LocalDate d) {
         String month = d.getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
         return List.of(d.toString(), d.getDayOfMonth() + " " + month, month + " " + d.getDayOfMonth(),
                 String.format(Locale.ROOT, "%02d.%02d", d.getDayOfMonth(), d.getMonthValue()));
     }
 
+    /**
+     * Case-insensitive (including non-ASCII letters), so expectations do not depend on how the model capitalises.
+     */
     private static Pattern pattern(String regex) {
         return Pattern.compile(regex, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
     }

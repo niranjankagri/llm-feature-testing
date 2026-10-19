@@ -18,6 +18,10 @@ public final class Policy {
     private final String markdown;
     private final Map<String, String> titles = new LinkedHashMap<>();
 
+    /**
+     * Normalises line endings (so recording keys are the same on Windows and Linux) and collects the section ids
+     * and titles from the "## P1 ..." headings.
+     */
     private Policy(String markdown) {
         this.markdown = markdown.replace("\r\n", "\n");
         Matcher m = SECTION.matcher(this.markdown);
@@ -38,6 +42,7 @@ public final class Policy {
         }
     }
 
+    /** The full policy text; it is part of the assistant's system prompt. */
     public String markdown() {
         return markdown;
     }
