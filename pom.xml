@@ -24,6 +24,23 @@
         <cli>help</cli>
     </properties>
 
+    <!--
+      Every Jackson module on one patched version. The Anthropic SDK brings in 2.19.4, which has
+      known jackson-databind vulnerabilities (fixed in 2.21.7); the BOM lifts core, annotations,
+      databind and the SDK's datatype modules together so they never mix versions.
+    -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>2.21.7</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <!-- Official Anthropic Java SDK: the assistant and the judge call Claude through it -->
         <dependency>
@@ -31,11 +48,10 @@
             <artifactId>anthropic-java</artifactId>
             <version>2.73.0</version>
         </dependency>
-        <!-- JSON for the app, the eval cases and the reports; same version the SDK brings in -->
+        <!-- JSON for the app, the eval cases and the reports; version from the Jackson BOM above -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.19.4</version>
         </dependency>
         <!-- TestNG runs the unit tests and the eval suite (one test per case and tag threshold) -->
         <dependency>
