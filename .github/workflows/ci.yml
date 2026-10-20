@@ -29,6 +29,16 @@ jobs:
           cache: maven
       - name: Unit suite (no model calls)
         run: ./mvnw -B test
+      # JUnit XML only, as its own artifact: the CI results collection of
+      # automation-coverage-quality-intelligence imports it (config/producers.toml there)
+      - name: Keep the JUnit results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: junit-unit
+          path: target/surefire-reports/TEST-*.xml
+          if-no-files-found: warn
+          retention-days: 30
 
   eval:
     name: Golden-set eval (replayed)
