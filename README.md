@@ -146,6 +146,17 @@ leaks, non-determinism, CI and cost), each answered with a pointer into this rep
 - Recordings make CI deterministic but show the model's answers on the recording day.
 - The sample run proves the harness, not the assistant: only a live run says how Claude does on the golden set.
 
+## CI
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml), on every push and pull request:
+
+1. **Eval data audit + harness tests**: the golden set and the harness tests; the JUnit XML is kept as the
+   `junit-unit` artifact, which [Automation Coverage & Quality Intelligence](https://github.com/niranjankagri/automation-coverage-quality-intelligence) collects.
+2. **Golden-set eval (replayed)**: replays recorded answers through the eval (skips until recordings exist).
+3. **Eval on hand-written sample answers**: the whole eval without a key, see [Sample mode](#sample-mode-no-key).
+
+`main` is protected by a ruleset: every change goes through a pull request, and the CI jobs above must pass before it is merged.
+
 ## License
 
-MIT
+[MIT](LICENSE)
