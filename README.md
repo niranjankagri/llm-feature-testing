@@ -155,6 +155,8 @@ leaks, non-determinism, CI and cost), each answered with a pointer into this rep
 2. **Golden-set eval (replayed)**: replays recorded answers through the eval (skips until recordings exist).
 3. **Eval on hand-written sample answers**: the whole eval without a key, see [Sample mode](#sample-mode-no-key).
 
+CI also runs every Sunday at 23:15 UTC without a code change, so a broken dependency or a change outside the repository shows up within a week. Dependabot proposes dependency and GitHub Actions updates once a month (minor and patch updates grouped, major versions as separate pull requests).
+
 `main` is protected by a ruleset: every change goes through a pull request, and the CI jobs above must pass before it is merged.
 
 ## License
