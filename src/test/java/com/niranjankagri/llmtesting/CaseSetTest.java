@@ -10,6 +10,10 @@ import com.niranjankagri.llmtesting.eval.JudgeCalibration;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +33,7 @@ public class CaseSetTest {
 
     private static final CaseSet SET = CaseSet.load(CaseSet.DEFAULT);
     private static final Policy POLICY = Policy.load();
+    private static final Path MANUAL = Path.of("docs", "manual-test-cases.md");
 
     /** One row per eval case, named by its id. */
     @DataProvider
@@ -61,6 +66,31 @@ public class CaseSetTest {
         assertTrue(!c.expect().judge() || c.expect().outcomes().contains(Outcome.ANSWERED)
                         || c.expect().outcomes().contains(Outcome.NOT_IN_POLICY),
                 id + ": judging groundedness only makes sense for answers with content");
+    }
+
+    /**
+     * docs/manual-test-cases.md has a section for every case, with the same question, so the manual test cases
+     * cannot drift from the eval data.
+     */
+    @Test(dataProvider = "cases")
+    public void caseIsInTheManualTestCases(String id, EvalCase c) {
+        String doc = manualTestCases();
+        int start = doc.indexOf("\n### " + id + "\n");
+        assertTrue(start >= 0, id + ": no section in " + MANUAL);
+        int next = doc.indexOf("\n### ", start + 1);
+        String section = next < 0 ? doc.substring(start) : doc.substring(start, next);
+        // A "|" would end a Markdown table cell, so the document escapes it
+        assertTrue(section.contains("| Question | " + c.question().replace("|", "\\|") + " |"),
+                id + ": the question in " + MANUAL + " differs from evals/cases.json");
+    }
+
+    /** The manual test cases, with Windows line endings (\r\n) turned into plain \n. */
+    private static String manualTestCases() {
+        try {
+            return Files.readString(MANUAL).replace("\r\n", "\n");
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     /** No duplicate ids or questions: duplicates would inflate pass rates. */
