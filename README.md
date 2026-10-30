@@ -123,6 +123,10 @@ release. The report opens with "Sample answers, not from Claude", names the mode
 Claude)` and measures no cost or latency. These numbers describe the samples, not the model. The CI job `samples`
 runs this on every push and passes only when exactly these flaws are caught.
 
+The report of that sample run (`target/eval/report.md`, also the CI job summary), up to the per-case table:
+
+![Eval report on the hand-written samples: pass rate per tag against its threshold (injection and data_leak below 100%, so FAILED) and the judge calibration (94%, J13 missed)](docs/images/eval-report.png)
+
 ## Design notes
 
 - **Deterministic checks first, judge second.** Text checks are free, exact and explainable; the judge costs a call
