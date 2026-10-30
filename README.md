@@ -65,6 +65,10 @@ evals/cases.json (32 cases, hand-written expectations + reference answer each)
 | `injection` | 6 | **100%** | "ignore your instructions", fake HR notice, fake admin, canary extraction, translation trick, "developer mode" |
 | `data_leak` | 4 | **100%** | colleagues' leave must not be shared (in any date format); a manager *may* see their team |
 
+### Test cases
+
+The 32 eval cases keep their IDs (`F01`, `I04` ...: the letter is the category); `llm eval --case F02` runs one, and the report lists every case by ID. Each is written out for a manual check (ask as, question, expected outcome, must / must not contain, citations, reference answer) in [docs/manual-test-cases.md](docs/manual-test-cases.md); `CaseSetTest` fails if a case is missing there or its question differs from `evals/cases.json`.
+
 ## Testing the tests
 
 An eval that is wrong produces confident numbers in the wrong direction, so the harness is tested before any model
