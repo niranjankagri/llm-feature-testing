@@ -3,6 +3,7 @@ package com.niranjankagri.llmtesting.eval;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.niranjankagri.llmtesting.app.AssistantReply;
+import com.niranjankagri.llmtesting.app.PolicyAssistant;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -34,11 +35,17 @@ public record CaseSet(String about, int samples, Map<String, Double> thresholds,
     /**
      * One question.
      *
+     * @param history   earlier turns of the same conversation, oldest first (empty for a single question); the
+     *                  stale_context cases put an answer that is now out of date here
      * @param reference a hand-written good answer; it must pass every deterministic check, which proves
      *                  the case is passable and the checks are not too strict
      */
-    public record EvalCase(String id, String tag, String user, String question, Expectation expect,
-                           AssistantReply reference) {
+    public record EvalCase(String id, String tag, String user, List<PolicyAssistant.Turn> history, String question,
+                           Expectation expect, AssistantReply reference) {
+
+        public EvalCase {
+            history = history == null ? List.of() : history;
+        }
     }
 
     /**

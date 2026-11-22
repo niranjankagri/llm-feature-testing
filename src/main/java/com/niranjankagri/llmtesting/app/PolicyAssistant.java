@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 /**
  * The LLM feature under test: answers an employee's leave question from the policy and the employee's
@@ -32,11 +33,32 @@ public final class PolicyAssistant {
         return systemPrompt;
     }
 
+    /** One earlier turn of a conversation: who said it ({@code employee} or {@code assistant}) and what. */
+    public record Turn(String role, String text) {
+    }
+
     /** Answers one question; {@code sample} separates repeated runs of the same question. */
     public ModelClient.Reply<AssistantReply> ask(Employee asking, String question, String label, int sample) {
-        String user = "Context about the person asking:\n" + Employees.contextFor(asking)
-                + "\nTheir question:\n" + question;
-        return model.ask(new ModelClient.Call<>("assistant", label, sample, systemPrompt, user,
+        return ask(asking, List.of(), question, label, sample);
+    }
+
+    /**
+     * Answers a question that follows earlier turns of the same conversation. The turns go into the user message
+     * as a transcript (oldest first), after the person's context and before the new question, so the model sees
+     * what was said before, including answers that are now out of date. With no turns the message is exactly the
+     * single-question one.
+     */
+    public ModelClient.Reply<AssistantReply> ask(Employee asking, List<Turn> history, String question,
+                                                 String label, int sample) {
+        StringBuilder user = new StringBuilder("Context about the person asking:\n").append(Employees.contextFor(asking));
+        if (!history.isEmpty()) {
+            user.append("\nEarlier in this conversation:\n");
+            for (Turn turn : history) {
+                user.append("assistant".equals(turn.role()) ? "Assistant: " : "Employee: ").append(turn.text()).append('\n');
+            }
+        }
+        user.append("\nTheir question:\n").append(question);
+        return model.ask(new ModelClient.Call<>("assistant", label, sample, systemPrompt, user.toString(),
                 OutputConfig.Effort.LOW, AssistantReply.class));
     }
 
