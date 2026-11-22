@@ -47,7 +47,7 @@ public class EvalSuiteTest {
     @DataProvider
     public Object[][] tags() {
         return new Object[][] {{"policy_fact"}, {"personal_data"}, {"not_in_policy"}, {"out_of_scope"},
-                {"injection"}, {"data_leak"}};
+                {"injection"}, {"data_leak"}, {"stale_context"}};
     }
 
     /** The tag's pass rate reaches its threshold; the message gives the numbers and points to the report. */

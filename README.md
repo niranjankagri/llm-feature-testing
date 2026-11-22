@@ -9,8 +9,8 @@ assistant**, built on Claude, and the **eval harness** that decides whether it i
 Companion repo: [ai-assisted-test-automation](https://github.com/niranjankagri/ai-assisted-test-automation) uses AI
 to *write and triage* tests; this one *tests an AI feature*.
 
-> **Status:** the feature, the 32-case golden set, the checks, the judge and its calibration set, the harness and its
-> 90 tests, and CI are complete. **No answer in this repository comes from Claude yet**, so there are no real pass
+> **Status:** the feature, the 35-case golden set, the checks, the judge and its calibration set, the harness and its
+> 168 tests, and CI are complete. **No answer in this repository comes from Claude yet**, so there are no real pass
 > rates. To show the eval without an API key, sample mode runs it on **hand-written answers**: the reference answers
 > plus a few bad ones planted on purpose (see [Sample mode](#sample-mode-no-key)). The first live eval run (recording
 > the answers) is still to do; until then the CI job that replays recordings skips itself.
@@ -41,7 +41,7 @@ to the model.
 ![Eval flow: golden set, assistant, deterministic checks, calibrated LLM judge, pass rate per tag](docs/images/eval-flow.png)
 
 ```text
-evals/cases.json (32 cases, hand-written expectations + reference answer each)
+evals/cases.json (35 cases, hand-written expectations + reference answer each)
         │  every case asked 3 times (answers vary between runs)
         ▼
  assistant answer ──► deterministic checks (every answer)          ──► fail: sample fails, judge not called
@@ -64,15 +64,16 @@ evals/cases.json (32 cases, hand-written expectations + reference answer each)
 | `out_of_scope` | 3 | 90% | code, weather, trivia: must not answer |
 | `injection` | 6 | **100%** | "ignore your instructions", fake HR notice, fake admin, canary extraction, translation trick, "developer mode" |
 | `data_leak` | 4 | **100%** | colleagues' leave must not be shared (in any date format); a manager *may* see their team |
+| `stale_context` | 3 | **100%** | an outdated answer earlier in the conversation (old deadline, notice period, entitlement): the reply must follow the current policy and never repeat the old value |
 
 ### Test cases
 
-The 32 eval cases keep their IDs (`F01`, `I04` ...: the letter is the category); `llm eval --case F02` runs one, and the report lists every case by ID. Each is written out for a manual check (ask as, question, expected outcome, must / must not contain, citations, reference answer) in [docs/manual-test-cases.md](docs/manual-test-cases.md); `CaseSetTest` fails if a case is missing there or its question differs from `evals/cases.json`.
+The 35 eval cases keep their IDs (`F01`, `I04` ...: the letter is the category); `llm eval --case F02` runs one, and the report lists every case by ID. Each is written out for a manual check (ask as, question, expected outcome, must / must not contain, citations, reference answer) in [docs/manual-test-cases.md](docs/manual-test-cases.md); `CaseSetTest` fails if a case is missing there or its question differs from `evals/cases.json`.
 
 ## Testing the tests
 
 An eval that is wrong produces confident numbers in the wrong direction, so the harness is tested before any model
-sees it (`mvnw test`, 90 tests, no API key):
+sees it (`mvnw test`, 168 tests, no API key):
 
 - **Every case's hand-written reference answer passes every deterministic check**: each case is passable and no
   check is stricter than intended.
@@ -149,7 +150,7 @@ leaks, non-determinism, CI and cost), each answered with a pointer into this rep
 
 ## Limitations
 
-- 32 cases is a starting set, not coverage of real traffic; production use needs cases from real questions.
+- 35 cases is a starting set, not coverage of real traffic; production use needs cases from real questions.
 - The judge checks groundedness only, not tone or helpfulness.
 - Recordings make CI deterministic but show the model's answers on the recording day.
 - The sample run proves the harness, not the assistant: only a live run says how Claude does on the golden set.

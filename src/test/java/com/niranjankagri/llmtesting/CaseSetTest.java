@@ -1,6 +1,8 @@
 package com.niranjankagri.llmtesting;
 
+import com.niranjankagri.llmtesting.app.AssistantReply;
 import com.niranjankagri.llmtesting.app.AssistantReply.Outcome;
+import com.niranjankagri.llmtesting.app.PolicyAssistant;
 import com.niranjankagri.llmtesting.app.Employees;
 import com.niranjankagri.llmtesting.app.Policy;
 import com.niranjankagri.llmtesting.eval.CaseSet;
@@ -100,6 +102,33 @@ public class CaseSetTest {
         for (EvalCase c : SET.cases()) {
             assertTrue(ids.add(c.id()), "duplicate id " + c.id());
             assertTrue(questions.add(c.user() + "|" + c.question().toLowerCase()), "duplicate question " + c.id());
+        }
+    }
+
+    /** Every earlier turn is from the employee or the assistant and has text. */
+    @Test(dataProvider = "cases")
+    public void historyTurnsAreWellFormed(String id, EvalCase c) {
+        c.history().forEach(t -> {
+            assertTrue(List.of("employee", "assistant").contains(t.role()), id + ": unknown role " + t.role());
+            assertTrue(t.text() != null && !t.text().isBlank(), id + ": empty turn");
+        });
+    }
+
+    /**
+     * Every stale_context case is a real trap: it has an earlier assistant answer, and repeating that outdated
+     * answer (with the right outcome and citations) fails one of the case's must-not checks. So the case catches
+     * exactly the mistake it is about, and not only a wrong fact in general.
+     */
+    public void repeatingTheOutdatedAnswerFailsEveryStaleContextCase() {
+        List<EvalCase> stale = SET.cases().stream().filter(c -> c.tag().equals("stale_context")).toList();
+        assertTrue(stale.size() >= 3, "only " + stale.size() + " stale_context cases");
+        for (EvalCase c : stale) {
+            String outdated = c.history().stream().filter(t -> t.role().equals("assistant")).map(PolicyAssistant.Turn::text)
+                    .reduce((first, last) -> last).orElseThrow(() -> new AssertionError(c.id() + ": no earlier assistant answer"));
+            AssistantReply repeated = new AssistantReply(outdated, c.expect().outcomes().get(0), c.expect().mustCite());
+            List<String> failed = Checks.run(c, repeated, POLICY).stream().filter(r -> !r.passed()).map(Checks.Result::name).toList();
+            assertTrue(failed.stream().anyMatch(n -> n.startsWith("must not match")),
+                    c.id() + ": repeating \"" + outdated + "\" is not caught by a must-not check, only by " + failed);
         }
     }
 

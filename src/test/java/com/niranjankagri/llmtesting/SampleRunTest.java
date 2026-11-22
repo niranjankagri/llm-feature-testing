@@ -29,7 +29,7 @@ public class SampleRunTest {
     private JudgeCalibration.Result calibration;
 
     /**
-     * The same steps as `llm eval`, with the hand-written samples instead of Claude: calibrate, then run all 32
+     * The same steps as `llm eval`, with the hand-written samples instead of Claude: calibrate, then run all 35
      * cases 3 times.
      */
     @BeforeClass
@@ -81,7 +81,7 @@ public class SampleRunTest {
         String report = Files.readString(EvalReport.write(run, calibration));
         assertTrue(report.contains("**Sample answers, not from Claude.**"), report);
         assertTrue(report.contains("Model `" + SampleClient.MODEL + "`"), report);
-        assertTrue(report.contains("96 answers (hand-written samples)"), report);
+        assertTrue(report.contains("105 answers (hand-written samples)"), report);
         assertFalse(report.contains("replayed from recordings"), report);
         assertTrue(report.contains("None measured: sample answers make no model calls."), report);
     }

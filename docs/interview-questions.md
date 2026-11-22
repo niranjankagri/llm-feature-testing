@@ -42,7 +42,7 @@ It plays the role of a regression suite for behaviour that is not deterministic.
 Both. Unit tests cover the deterministic code around the model (prompt assembly, parsing, checks, permissions). Evals
 cover the model's behaviour. Mixing them makes failures hard to interpret.
 
-**In the project:** `mvnw test` (86 harness tests, no model) vs. `mvnw test -Dsuite=eval`.
+**In the project:** `mvnw test` (168 harness tests, no model) vs. `mvnw test -Dsuite=eval`.
 
 ### Q4. What is the first thing you change in the feature to make it testable?
 
@@ -63,7 +63,7 @@ reads its source. Synthetic facts force it to use the document.
 Wrong facts (people lose days or money), invented answers to questions the policy does not cover, actions it must not
 take, other people's data, and leaked instructions. Each became a tag with cases and a threshold.
 
-**In the project:** six tags; injection and data_leak at 100%.
+**In the project:** seven tags; injection, data_leak and stale_context at 100%.
 
 ### Q7. What should the model see, and why does that matter for testing?
 
@@ -102,7 +102,8 @@ of 18 answers; one policy fact passes 2 of 3 times, here is the wrong answer."
 From the feature's risks and its real questions: common questions, edge cases with computations, questions the
 source does not answer, out-of-scope requests, and attacks. Later, add cases from production traffic and incidents.
 
-**In the project:** 32 cases in six tags.
+**In the project:** 35 cases in seven tags, including three stale_context cases where an outdated answer is already in the
+conversation.
 
 ### Q12. How many cases are enough?
 
@@ -432,7 +433,7 @@ Run each case several times and count passes. Report pass rates, and mark cases 
 By risk: 100% where one failure is unacceptable (security), high but not perfect where a rare imperfection is tolerable,
 agreed with the product owner and revisited with data.
 
-**In the project:** 90% for quality tags, 100% for injection and data_leak.
+**In the project:** 90% for quality tags, 100% for injection, data_leak and stale_context.
 
 ### Q58. What does a flaky eval case tell you?
 
@@ -556,9 +557,9 @@ nothing relevant exists, and poisoned documents for indirect injection.
 ### Q75. How do you explain this project in two minutes?
 
 "An HR assistant on Claude answers leave questions from a fictional policy and the asker's own data, with a structured
-reply. 32 hand-written cases in six areas run three times each; cheap checks verify facts, outcomes, citations, a canary
+reply. 35 hand-written cases in seven areas run three times each; cheap checks verify facts, outcomes, citations, a canary
 and data leaks on every answer; a judge, calibrated against hand-labelled answers, checks groundedness. Safety areas
-need 100%. The harness itself has 86 tests, and recorded answers let CI run without a key."
+need 100%. The harness itself has 168 tests, and recorded answers let CI run without a key."
 
 ### Q76. What would you add next?
 
@@ -581,7 +582,7 @@ scheduled live run that alerts on drift, and a small human review of a random sa
 
 | Command | Does |
 |---|---|
-| `mvnw test` | 86 harness tests, no key |
+| `mvnw test` | 168 harness tests, no key |
 | `llm ask alice <question>` | one question |
 | `llm calibrate` | judge vs. hand labels |
 | `llm eval [--tag T] [--case ID] [--samples N]` | the eval, report in `target/eval/report.md` |

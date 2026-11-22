@@ -45,6 +45,32 @@ public class HarnessTest {
         assertTrue(maria.contains("Bob Schmidt") && maria.contains("#18 UNPAID 2026-11-23"), maria);
     }
 
+    /**
+     * A stale_context case sends its earlier turns, oldest first, between the context and the new question; a case
+     * without history sends the same message as before history existed.
+     */
+    public void earlierTurnsReachTheModelInOrderBeforeTheQuestion() {
+        List<String> messages = new java.util.ArrayList<>();
+        StubModel stub = new StubModel().otherwise(call -> {
+            messages.add(call.user());
+            return call.type() == AssistantReply.class
+                    ? new AssistantReply("x", Outcome.ANSWERED, List.of()) : GROUNDED;
+        });
+        new EvalRunner(stub, POLICY).run(SET.only(List.of(), List.of("S01", "F01")).withSamples(1));
+
+        // Both scripted answers fail the text checks, so no judge calls: one message per case, in file order
+        assertEquals(messages.size(), 2, messages.toString());
+        String f01 = messages.get(0);
+        String s01 = messages.get(1);
+        assertEquals(f01, "Context about the person asking:\n" + Employees.contextFor(Employees.find("alice").orElseThrow())
+                + "\nTheir question:\nHow many days of annual leave do I get each year?");
+        int context = s01.indexOf("Context about the person asking:");
+        int asked = s01.indexOf("Employee: When do my carried-over leave days expire?");
+        int stale = s01.indexOf("Assistant: Carried-over days must be taken by 31 January");
+        int question = s01.indexOf("Their question:\nI've got 5 days carried over.");
+        assertTrue(context == 0 && context < asked && asked < stale && stale < question, s01);
+    }
+
     /** The judge is only paid for when the text checks passed: sample 2 fails a check and is never judged. */
     public void judgeRunsOnlyWhenTheCheapChecksPassed() {
         CaseSet one = SET.only(List.of(), List.of("F01")).withSamples(2);

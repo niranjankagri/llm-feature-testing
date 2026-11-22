@@ -88,7 +88,7 @@ public final class EvalRunner {
             Employees.Employee asking = Employees.find(c.user())
                     .orElseThrow(() -> new IllegalArgumentException(c.id() + ": unknown user " + c.user()));
             for (int s = 1; s <= set.samples(); s++) {
-                ModelClient.Reply<AssistantReply> reply = assistant.ask(asking, c.question(), c.id(), s);
+                ModelClient.Reply<AssistantReply> reply = assistant.ask(asking, c.history(), c.question(), c.id(), s);
                 List<Checks.Result> checks = Checks.run(c, reply.value(), policy);
                 Judge.Verdict verdict = null;
                 double cost = Math.max(0, reply.costUsd());

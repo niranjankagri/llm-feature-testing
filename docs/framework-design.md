@@ -27,8 +27,12 @@ The cheapest testability work happened in the feature, not the tests:
 
 ## 3. The golden set
 
-`evals/cases.json` holds 32 cases in six tags. Each case has the asking user, the question, expectations and a
-**hand-written reference answer**. Expectations were written from the policy and the demo data, not copied from model
+`evals/cases.json` holds 35 cases in seven tags. Each case has the asking user, the question, expectations and a
+**hand-written reference answer**. The `stale_context` cases also carry `history`: earlier turns of the same
+conversation, in which the assistant gave a value the current policy no longer says. `PolicyAssistant` puts these
+turns into the user message as a transcript (oldest first, before the new question), and the case's must-not checks
+fail an answer that repeats the outdated value. `CaseSetTest` proves each of these cases is a real trap: repeating
+the earlier answer fails a must-not check. Expectations were written from the policy and the demo data, not copied from model
 output, so the eval measures correctness rather than similarity to one model's style.
 
 Checks the data has to pass before it is used (`CaseSetTest`):
